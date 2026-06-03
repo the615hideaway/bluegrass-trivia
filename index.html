@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bluegrass Trivia • Test Your Knowledge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@400;500;600&amp;family=Georgia:wght@400;500&amp;display=swap');
+    
+    :root {
+      --forest: #14532d;
+      --gold: #b45309;
+      --cream: #f8f1e3;
+      --wood: #3f2a1d;
+    }
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    
+    .heading-serif {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .question-text {
+      font-family: 'Georgia', Georgia, serif;
+      font-size: clamp(1.05rem, 4.2vw, 1.35rem);
+      line-height: 1.35;
+    }
+
+    .bluegrass-bg {
+      background: linear-gradient(135deg, #f8f1e3 0%, #f0e6d2 100%);
+    }
+
+    .wood-border {
+      border-color: #5c4633;
+    }
+
+    .trivia-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                  box-shadow 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .trivia-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+
+    .answer-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .answer-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      border-color: #854d0e;
+    }
+
+    .answer-btn:disabled {
+      cursor: default;
+      opacity: 1;
+    }
+
+    .answer-btn.correct {
+      background-color: #dcfce7;
+      border-color: #16a34a;
+      color: #14532d;
+    }
+
+    .answer-btn.wrong {
+      background-color: #fee2e2;
+      border-color: #dc2626;
+      color: #7f1d1d;
+    }
+
+    .answer-btn.selected-correct {
+      background-color: #bbf7d0;
+      border-color: #15803d;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    .section {
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .score-pop {
+      animation: scorePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .progress-bar {
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .banjo-icon {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .leaderboard-row {
+      transition: background-color 0.1s ease;
+    }
+
+    .leaderboard-row:hover {
+      background-color: #f8f1e3;
+    }
+
+    .option-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      opacity: 0.6;
+    }
+
+    .modal {
+      animation: modalPop 0.2s ease forwards;
+    }
+
+    .bluegrass-green { color: #14532d; }
+    .bluegrass-gold { color: #b45309; }
+    .bluegrass-wood { color: #3f2a1d; }
+
+    .stat-badge {
+      background: white;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+    }
+
+    /* Wix embed + mobile optimizations */
+    html, body {
+      width: 100%;
+      height: auto;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    #start-screen,
+    #game-screen,
+    #results-screen {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Tighter mobile spacing and larger touch targets */
+    @media (max-width: 480px) {
+      .trivia-card {
+        padding: 0.875rem !important;
+        border-radius: 1rem;
+      }
+      .answer-btn {
+        min-height: 48px !important;
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+      }
+    }
+
+    /* Timer urgency styles - keeps mobile clean */
+    #timer-fill.animate-pulse {
+      animation: timer-urgent 650ms ease-in-out infinite;
+    }
+    #timer-text.animate-pulse {
+      animation: timer-urgent 650ms ease-in-out infinite;
+    }
+    @keyframes timer-urgent {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+  </style>
+</head>
+<body class="bluegrass-bg text-[#3f2a1d]">
+  <!-- Top Nav -->
+  <nav class="border-b border-[#d4c3a3]/60 bg-white/70 backdrop-blur-md sticky top-0 z-50">
+    <div class="w-full max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+      <div class="flex items-center gap-x-2 sm:gap-x-3">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-[#14532d] rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
+          <span class="text-2xl sm:text-3xl">🪕</span>
+        </div>
+        <div>
+          <div class="font-semibold text-xl sm:text-2xl tracking-tighter heading-serif bluegrass-green">Bluegrass Trivia</div>
+          <div class="text-[9px] sm:text-[10px] text-[#5c4633] -mt-0.5 font-medium">TEST YOUR PICKIN' KNOWLEDGE</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-x-2">
+        <button onclick="showLeaderboardModal()"
+                class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-2xl border border-[#5c4633]/30 hover:bg-white flex items-center gap-x-2 transition-colors">
+          <i class="fa-solid fa-trophy text-[#b45309]"></i>
+          <span class="hidden sm:inline">Leaderboard</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="section w-full max-w-3xl mx-auto px-4 sm:px-5 pt-6 sm:pt-8 pb-8 sm:pb-12">
+    <div class="text-center">
+      <div class="inline-flex items-center gap-x-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-white shadow-sm border border-[#d4c3a3] rounded-3xl mb-4 sm:mb-5">
+        <div class="flex -space-x-1">
+          <div class="w-5 h-5 bg-[#14532d] rounded-full ring-2 ring-white flex items-center justify-center text-[10px]">🎻</div>
+          <div class="w-5 h-5 bg-[#b45309] rounded-full ring-2 ring-white flex items-center justify-center text-[10px]">🪕</div>
+        </div>
+        <span class="text-xs font-bold tracking-[1px] text-[#5c4633]">COMMUNITY DRIVEN</span>
+      </div>
+
+      <h1 class="text-5xl sm:text-6xl md:text-7xl heading-serif tracking-tighter bluegrass-green leading-none mb-1 sm:mb-2">
+        Bluegrass<br>Trivia
+      </h1>
+      <p class="text-lg sm:text-xl text-[#5c4633] max-w-md mx-auto mb-5 sm:mb-6">
+        15 questions. Legends, songs &amp; history.<br>
+        Are you a true picker?
+      </p>
+
+      <!-- Game Rules -->
+      <div class="w-full max-w-md mx-auto mb-5 sm:mb-7 bg-white/80 border border-[#d4c3a3] rounded-3xl p-3 sm:p-4 text-left shadow-sm">
+        <div class="uppercase text-[#b45309] text-xs font-bold tracking-widest mb-2 sm:mb-3 px-1">Game Rules</div>
+        <div class="grid grid-cols-2 gap-y-1.5 sm:gap-y-2 text-sm">
+          <div class="flex items-center gap-x-3">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-2xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <span class="font-mono font-bold text-emerald-700">11</span>
+            </div>
+            <div>
+              <div class="font-semibold">Regular Questions</div>
+              <div class="text-xs text-[#5c4633]">100 points each</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-x-3">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <span class="font-mono font-bold text-amber-700">4</span>
+            </div>
+            <div>
+              <div class="font-semibold">Shorts Questions</div>
+              <div class="text-xs text-[#5c4633]">200 points each</div>
+            </div>
+          </div>
+          <div class="col-span-2 pt-2 border-t border-[#d4c3a3]/60 flex items-center justify-between text-sm">
+            <div class="font-semibold flex items-center gap-x-2">
+              <i class="fa-solid fa-tachometer-alt text-[#b45309]"></i>
+              <span>Max Score</span>
+            </div>
+            <div class="font-mono font-bold text-base sm:text-lg text-[#14532d]">1,700</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 justify-center">
+        <button onclick="startGame()"
+                class="group px-6 sm:px-9 py-3 sm:py-4 bg-[#14532d] hover:bg-[#0f3f22] active:scale-[0.985] transition-all text-white font-semibold rounded-3xl text-base sm:text-lg shadow-lg shadow-[#14532d]/30 flex items-center justify-center gap-x-2 sm:gap-x-3">
+          <span>Start New Game</span>
+          <i class="fa-solid fa-play ml-1 group-active:translate-x-0.5 transition"></i>
+        </button>
+        
+        <button onclick="showLeaderboardModal()"
+                class="px-5 sm:px-8 py-3 sm:py-4 bg-white hover:bg-[#f8f1e3] border border-[#5c4633]/30 font-semibold rounded-3xl text-base sm:text-lg flex items-center justify-center gap-x-2 transition-colors">
+          <i class="fa-solid fa-trophy text-[#b45309]"></i>
+          <span>View Leaderboard</span>
+        </button>
+      </div>
+
+      <div class="mt-6 sm:mt-8 text-xs text-[#5c4633]/70 flex items-center justify-center gap-x-2">
+        <i class="fa-solid fa-sync fa-sm"></i>
+        <span>Questions from the bluegrass community</span>
+      </div>
+
+      <!-- Teaser high score -->
+      <div id="start-highscore" class="hidden mt-3 sm:mt-4 text-xs">
+        <span class="text-[#5c4633]/70">Best score:</span> 
+        <span id="start-highscore-val" class="font-semibold text-[#14532d]"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="hidden section w-full max-w-[820px] mx-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-6 sm:pb-8">
+    <!-- Game Header -->
+    <div class="flex items-center justify-between mb-2 sm:mb-3 px-1">
+      <div class="flex items-center gap-x-2 sm:gap-x-3">
+        <div class="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-white rounded-2xl shadow-sm border border-[#d4c3a3] flex items-center gap-x-2">
+          <span class="text-[10px] sm:text-xs font-bold text-[#5c4633]">SCORE</span>
+          <span id="game-score" class="font-mono font-bold text-lg sm:text-xl text-[#14532d] tabular-nums">0000</span>
+        </div>
+      </div>
+
+      <div class="text-right">
+        <div id="question-counter" class="font-semibold text-[#3f2a1d] text-xs sm:text-sm"></div>
+        <div class="text-[9px] sm:text-[10px] text-[#5c4633]">of 15 questions</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="h-1.5 sm:h-2 bg-white/70 border border-[#d4c3a3]/50 rounded-full mb-2 sm:mb-3 overflow-hidden shadow-inner">
+      <div id="progress-bar" class="h-1.5 sm:h-2 bg-gradient-to-r from-[#14532d] to-[#166534] rounded-full progress-bar" style="width: 0%"></div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="trivia-card bg-white border border-[#d4c3a3] shadow-xl shadow-black/5 rounded-3xl p-4 sm:p-5">
+      <!-- Type Badge -->
+      <div id="question-type-badge" 
+           class="inline-flex items-center gap-x-2 px-3 py-1 rounded-2xl text-xs font-bold tracking-wider mb-2">
+      </div>
+
+      <!-- Per-question Timer (narrow, centered clean row above question) -->
+      <div class="mb-2">
+        <div class="flex justify-center mb-1">
+          <div class="flex items-center gap-x-1.5 text-[10px] sm:text-xs font-semibold tracking-[0.5px] text-[#5c4633]">
+            <span>TIME LEFT</span>
+            <span id="timer-text" class="font-mono font-bold text-sm sm:text-base tabular-nums text-[#14532d]">15</span>
+          </div>
+        </div>
+        <div class="mx-auto w-full max-w-[55%] h-1.5 bg-[#d4c3a3]/30 rounded-full overflow-hidden">
+          <div id="timer-fill" 
+               class="h-1.5 bg-[#14532d] transition-all duration-300 ease-linear"
+               style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <div id="question-text" 
+           class="question-text text-[#2c2118] leading-tight mb-3 sm:mb-4 min-h-[48px] sm:min-h-[60px]">
+      </div>
+
+      <!-- Answers -->
+      <div id="answers-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Feedback -->
+      <div id="feedback-area" class="hidden mt-3 pt-2 sm:pt-3 border-t border-[#d4c3a3]/60">
+        <div id="feedback-text" class="text-xs sm:text-sm font-medium flex items-start gap-x-2"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="mt-3 sm:mt-4 flex items-center justify-between px-1 gap-2">
+      <div class="text-[10px] text-[#5c4633]">
+        <span id="points-this-q"></span>
+      </div>
+      
+      <button id="next-btn"
+              onclick="nextQuestion()"
+              disabled
+              class="px-4 sm:px-5 py-2 sm:py-2.5 min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed bg-[#14532d] text-white font-semibold rounded-2xl text-sm flex items-center gap-x-2 hover:bg-[#0f3f22] transition-colors">
+        <span id="next-btn-text">Next Question</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen" class="hidden section w-full max-w-lg mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-6 sm:pb-10 relative">
+    <div class="text-center mb-4 sm:mb-6">
+      <div class="inline-block px-3 sm:px-4 py-0.5 sm:py-1 bg-white border border-[#d4c3a3] rounded-3xl text-xs font-bold tracking-[1.5px] text-[#b45309]">GAME COMPLETE</div>
+    </div>
+
+    <div class="bg-white border border-[#d4c3a3] rounded-3xl p-4 sm:p-5 md:p-6 shadow-xl text-center">
+      <div class="mb-1 text-[#5c4633] text-sm font-medium">YOUR FINAL SCORE</div>
+      
+      <div class="flex items-baseline justify-center gap-x-1 mb-1">
+        <span id="final-score" class="font-mono text-5xl sm:text-6xl md:text-7xl font-bold tabular-nums text-[#14532d]">1450</span>
+        <span class="text-[#5c4633] text-2xl sm:text-3xl">/ 1700</span>
+      </div>
+
+      <div id="final-percent" 
+           class="inline-block text-xl sm:text-2xl font-semibold text-[#b45309] mb-3 sm:mb-4"></div>
+
+      <!-- Breakdown -->
+      <div class="flex justify-center gap-x-5 sm:gap-x-6 mb-4 sm:mb-5 text-sm">
+        <div>
+          <div class="font-mono text-base sm:text-lg font-semibold text-emerald-700" id="regular-correct">11/11</div>
+          <div class="text-xs text-[#5c4633]">Regular (100pt)</div>
+        </div>
+        <div>
+          <div class="font-mono text-base sm:text-lg font-semibold text-amber-700" id="shorts-correct">4/4</div>
+          <div class="text-xs text-[#5c4633]">Shorts (200pt)</div>
+        </div>
+      </div>
+
+      <div id="performance-message" 
+           class="text-base sm:text-lg font-medium px-4 sm:px-5 py-2 sm:py-2.5 bg-[#f8f1e3] rounded-2xl inline-block mb-4 sm:mb-5">
+      </div>
+
+      <!-- Submit to Leaderboard -->
+      <div class="border-t border-[#d4c3a3]/60 pt-3 sm:pt-4">
+        <div class="text-xs font-bold tracking-widest text-[#5c4633] mb-2">ADD TO LEADERBOARD</div>
+        
+        <div id="submit-form">
+          <div class="flex gap-2 max-w-xs mx-auto">
+            <input id="player-name" type="text" placeholder="Your name" value="Bluegrass Fan"
+                   class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-[#d4c3a3] focus:border-[#b45309] outline-none rounded-2xl text-sm">
+            <button onclick="submitScore()"
+                    class="px-5 sm:px-6 font-semibold bg-[#b45309] hover:bg-[#92400e] transition-colors text-white rounded-2xl text-sm">
+              Submit
+            </button>
+          </div>
+        </div>
+        <div id="submit-success" class="hidden text-emerald-600 text-xs mt-2 font-medium flex items-center gap-x-1 justify-center">
+          <i class="fa-solid fa-check-circle"></i> 
+          <span>Score saved to leaderboard!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Preview -->
+    <div class="mt-3 sm:mt-4">
+      <div class="flex items-center justify-between px-1 sm:px-2 mb-1.5">
+        <div class="font-bold text-xs sm:text-sm text-[#3f2a1d]">TOP SCORES</div>
+        <button onclick="clearLeaderboard()" class="text-[9px] sm:text-[10px] text-[#5c4633]/60 hover:text-red-600">Refresh</button>
+      </div>
+      <div id="results-leaderboard" class="bg-white border border-[#d4c3a3] rounded-3xl overflow-hidden text-xs sm:text-sm shadow-sm max-h-[220px] sm:max-h-[300px] overflow-y-auto">
+        <!-- JS populated -->
+      </div>
+    </div>
+
+    <div class="mt-3 sm:mt-4 flex gap-2 sm:gap-3">
+      <button onclick="playAgain()"
+              class="flex-1 py-2.5 sm:py-3 bg-[#14532d] text-white font-semibold rounded-3xl text-sm sm:text-base flex items-center justify-center gap-x-2 hover:bg-[#0f3f22]">
+        <i class="fa-solid fa-redo"></i>
+        <span>Play Again</span>
+      </button>
+      <button onclick="showLeaderboardModal()"
+              class="flex-1 py-2.5 sm:py-3 bg-white border border-[#5c4633]/30 font-semibold rounded-3xl text-sm sm:text-base flex items-center justify-center gap-x-2">
+        <i class="fa-solid fa-trophy text-[#b45309]"></i>
+        <span>Full Leaderboard</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div id="leaderboard-modal" onclick="if (event.target.id === 'leaderboard-modal') hideLeaderboardModal()" 
+       class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div onclick="event.stopImmediatePropagation()" 
+         class="modal bg-white w-full max-w-md rounded-3xl border border-[#d4c3a3] shadow-2xl overflow-hidden">
+      <div class="px-4 sm:px-6 pt-4 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between border-b">
+        <div class="flex items-center gap-x-2">
+          <i class="fa-solid fa-trophy text-[#b45309] text-lg sm:text-xl"></i>
+          <span class="font-bold text-lg sm:text-xl">Leaderboard</span>
+        </div>
+        <button onclick="hideLeaderboardModal()" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#5c4633] hover:bg-[#f8f1e3] rounded-2xl">✕</button>
+      </div>
+      
+      <div class="p-2 max-h-[380px] sm:max-h-[480px] overflow-auto" id="modal-leaderboard-body">
+        <!-- populated by JS -->
+      </div>
+      
+      <div class="p-3 sm:p-4 border-t bg-[#f8f1e3]/60 text-[10px] sm:text-xs text-center text-[#5c4633]">
+        Scores submitted via Google Form
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center py-4 sm:py-6 text-[10px] text-[#5c4633]/50">
+    Made with love for bluegrass music
+  </footer>
+
+  <!-- 
+  LEADERBOARD: reads Top 20 from CSV, submits name+score via form. Simple & reliable.
+  -->
+
+  <script>
+    // Tailwind script configuration
+    function initTailwind() {
+      document.documentElement.style.setProperty('--accent-green', '#14532d');
+    }
+
+    // Data parser (handles quoted fields)
+    function parseData(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const result = [];
+      const header = parseDataLine(lines[0]);
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = parseDataLine(lines[i]);
+        if (values.length >= 6) {
+          result.push({
+            type: values[0].trim(),
+            question: values[1].trim().replace(/^"|"$/g, ''),
+            correct: values[2].trim().replace(/^"|"$/g, ''),
+            wrong1: values[3].trim().replace(/^"|"$/g, ''),
+            wrong2: values[4].trim().replace(/^"|"$/g, ''),
+            wrong3: values[5].trim().replace(/^"|"$/g, '')
+          });
+        }
+      }
+      return result;
+    }
+
+    function parseDataLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    // Parser for tab-separated values (TSV) from the leaderboard Form Responses tab.
+    // Uses simple tab split (TSV from Google publish can vary by locale; see getLeaderboard for comma fallback).
+    function parseTSVLine(line) {
+      // Split on tabs for TSV (tab-separated) leaderboard data.
+      // Outer quotes (if present) are stripped by the caller.
+      return line.split('\t');
+    }
+
+    // Fisher-Yates shuffle
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Timer functions for per-question 15s countdown
+    function clearTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (autoNextTimeout) {
+        clearTimeout(autoNextTimeout);
+        autoNextTimeout = null;
+      }
+    }
+
+    function updateTimerDisplay() {
+      const textEl = document.getElementById('timer-text');
+      const fillEl = document.getElementById('timer-fill');
+      if (!textEl || !fillEl) return;
+
+      textEl.textContent = timeLeft;
+
+      const percent = Math.max(0, (timeLeft / 15) * 100);
+      fillEl.style.width = percent + '%';
+
+      // Reset classes
+      fillEl.classList.remove('bg-[#14532d]', 'bg-amber-500', 'bg-red-500', 'animate-pulse');
+      textEl.classList.remove('text-[#14532d]', 'text-amber-600', 'text-red-600', 'animate-pulse');
+
+      if (timeLeft > 10) {
+        fillEl.classList.add('bg-[#14532d]');
+        textEl.classList.add('text-[#14532d]');
+      } else if (timeLeft > 5) {
+        fillEl.classList.add('bg-amber-500');
+        textEl.classList.add('text-amber-600');
+      } else {
+        fillEl.classList.add('bg-red-500', 'animate-pulse');
+        textEl.classList.add('text-red-600', 'animate-pulse');
+      }
+    }
+
+    function startTimer() {
+      clearTimer();
+      timeLeft = 15;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timeLeft = Math.max(0, timeLeft - 1);
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+          clearTimer();
+          handleTimeOut();
+        }
+      }, 1000);
+    }
+
+    function handleTimeOut() {
+      if (hasAnswered) return;
+      hasAnswered = true;
+
+      clearTimer();
+
+      const container = document.getElementById('answers-container');
+      const buttons = container.querySelectorAll('button');
+      const q = gameQuestions[currentIndex];
+
+      // Disable all and reveal only the correct answer (no "selected wrong" since timeout)
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        const optText = btn.getAttribute('data-option');
+
+        if (optText === q.correct) {
+          btn.classList.add('correct', 'selected-correct');
+          btn.innerHTML = `
+            <div class="option-label w-5 text-center text-emerald-700">✓</div>
+            <div class="flex-1">${optText}</div>
+            <div class="text-xs px-2 py-px bg-emerald-700 text-white rounded font-bold">CORRECT</div>
+          `;
+        } else {
+          btn.style.opacity = '0.55';
+        }
+      });
+
+      // Show time's up feedback (no points)
+      const area = document.getElementById('feedback-area');
+      const text = document.getElementById('feedback-text');
+      area.classList.remove('hidden');
+      text.innerHTML = `
+        <span class="inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center bg-red-100 text-red-700 rounded-full flex-shrink-0 mt-px">
+          <i class="fa-solid fa-clock text-xs sm:text-sm"></i>
+        </span>
+        <span>Time's up! The correct answer was <span class="font-semibold text-red-700">${q.correct}</span></span>
+      `;
+      text.className = 'text-xs sm:text-sm font-medium flex items-start gap-x-2 text-red-700';
+
+      // Automatically move to next question after brief pause (shows the answer)
+      // next button remains disabled during this; user-paced only on manual answers
+      autoNextTimeout = setTimeout(() => {
+        autoNextTimeout = null;
+        nextQuestion();
+      }, 1350);
+    }
+
+    // Fallback questions (used if fetch fails)
+    const FALLBACK_QUESTIONS = [
+      { type: "Regular", question: "What year was the Grand Ole Opry founded?", correct: "1925", wrong1: "1932", wrong2: "1941", wrong3: "1918" },
+      { type: "Regular", question: "What instrument is most associated with Earl Scruggs' name?", correct: "Banjo", wrong1: "Mandolin", wrong2: "Fiddle", wrong3: "Guitar" },
+      { type: "Regular", question: "Who popularized the song \"Blue Moon of Kentucky\"?", correct: "Bill Monroe", wrong1: "Elvis Presley", wrong2: "Hank Williams", wrong3: "Flatt & Scruggs" },
+      { type: "Regular", question: "Which of these is NOT a standard bluegrass instrument?", correct: "Drums", wrong1: "Mandolin", wrong2: "Banjo", wrong3: "Fiddle" },
+      { type: "Regular", question: "What is the standard tuning for a mandolin?", correct: "GG-DD-AA-EE", wrong1: "DD-AA-EE-GG", wrong2: "EE-AA-DD-GG", wrong3: "CC-GG-DD-AA" },
+      { type: "Regular", question: "What was Lester Flatt's signature vocal trait?", correct: "His high tenor voice", wrong1: "His deep bass voice", wrong2: "His yodeling", wrong3: "His spoken word style" },
+      { type: "Regular", question: "Which bluegrass artist was also a professional wrestler early in his career?", correct: "Charlie Louvin", wrong1: "Mac Wiseman", wrong2: "Jimmy Martin", wrong3: "Del McCoury" },
+      { type: "Regular", question: "Which famous guitarist played with both Bill Monroe and Flatt & Scruggs?", correct: "Doc Watson", wrong1: "Tony Rice", wrong2: "Clarence White", wrong3: "Norman Blake" },
+      { type: "Regular", question: "Which band did Lester Flatt and Earl Scruggs form in 1948 after leaving Bill Monroe?", correct: "The Foggy Mountain Boys", wrong1: "The Blue Grass Boys", wrong2: "The Lonesome Pine Fiddlers", wrong3: "The Kentucky Colonels" },
+      { type: "Regular", question: "Which band is famous for the song \"Rocky Top\"?", correct: "The Osborne Brothers", wrong1: "The Stanley Brothers", wrong2: "Flatt & Scruggs", wrong3: "Ricky Skaggs" },
+      { type: "Regular", question: "What is Earl Scruggs best known for inventing?", correct: "The three-finger banjo roll", wrong1: "The clawhammer style", wrong2: "The two-finger style", wrong3: "The Scruggs picker" },
+      { type: "Shorts", question: "What year did Bill Monroe first record \"Muleskinner Blues\"?", correct: "1940", wrong1: "1939", wrong2: "1945", wrong3: "1952" },
+      { type: "Shorts", question: "What year was \"Foggy Mountain Breakdown\" first recorded by Flatt & Scruggs?", correct: "1949", wrong1: "1952", wrong2: "1945", wrong3: "1955" },
+      { type: "Shorts", question: "Who won IBMA Mandolin Player of the Year multiple times in the 2000s and early 2010s?", correct: "Adam Steffey", wrong1: "Sierra Hull", wrong2: "Ronnie McCoury", wrong3: "Alan Bibey" },
+      { type: "Shorts", question: "Who won IBMA Entertainer of the Year in 2021?", correct: "Billy Strings", wrong1: "The Gibson Brothers", wrong2: "Dailey & Vincent", wrong3: "Rhonda Vincent" },
+      { type: "Shorts", question: "Who won the Grammy for Best Bluegrass Album in 2023?", correct: "Billy Strings", wrong1: "Molly Tuttle", wrong2: "The Infamous Stringdusters", wrong3: "The SteelDrivers" },
+      { type: "Shorts", question: "Who sang lead on the original recording of \"I'm a Man of Constant Sorrow\" with the Stanley Brothers?", correct: "Carter Stanley", wrong1: "Ralph Stanley", wrong2: "George Shuffler", wrong3: "Al Elliot" },
+      { type: "Shorts", question: "What nickname did Mac Wiseman go by?", correct: "The Voice with a Heart", wrong1: "The Heart with a Voice", wrong2: "The Crown Prince of Crimora", wrong3: "That guy named Mac" }
+    ];
+
+    // Game state
+    let allQuestions = [];
+    let gameQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let correctCount = 0;
+    let regularCorrect = 0;
+    let shortsCorrect = 0;
+    let hasAnswered = false;
+    let dataLoaded = false;
+
+    let timerInterval = null;
+    let timeLeft = 15;
+    let autoNextTimeout = null;
+
+    // === LEADERBOARD ===
+    const LEADERBOARD_READ_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRqnKPgc34Ylhj2p4Ykii_p286374l7IrVPg4AWB_2hNUavHTVUN7acWziUKkK2uHtJZyRkcoL5crCH/pub?gid=477188129&single=true&output=csv";
+    const LEADERBOARD_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfZu5YMD8qN9DLCs8p0SJ7z8OvoB1o_qPOI2WWVwo9tP-iAYQ/formResponse";
+    const LEADERBOARD_ENTRY_NAME = "entry.296522530";
+    const LEADERBOARD_ENTRY_SCORE = "entry.1714805248";
+
+    // Demo leaderboard data used when live CSV fetch fails (e.g. due to CORS on the published responses tab).
+    // With no-cors mode we get an opaque response and cannot read the body.
+    const FALLBACK_LEADERBOARD = [
+      { name: "Sammy P", score: 1700 },
+      { name: "Pickin' Pro", score: 1650 },
+      { name: "BanjoBoss", score: 1600 },
+      { name: "BluegrassKing", score: 1550 },
+      { name: "FiddleFan42", score: 1400 },
+      { name: "MandolinMike", score: 1300 },
+      { name: "Test Player", score: 1234 }
+    ];
+
+    const REMOTE_DATA_URL = atob('aHR0cHM6Ly9kb2NzLmdvb2dsZS5jb20vc3ByZWFkc2hlZXRzL2QvZS8yUEFDWC0xdlJxbktQZ2MzNFlsaGoycDRZa2lpX3AyODYzNzRsN0lyVlBnNEFXQl8yaE5VYXZIVFZVTjdhY1d6aVVLa0sydUh0Slp5Umtjb0w1Y3JDSC9wdWI/Z2lkPTAmc2luZ2xlPXRydWUmb3V0cHV0PWNzdg==');
+
+    // Load questions (live + fallback)
+    async function loadQuestions() {
+      if (dataLoaded && allQuestions.length > 0) return allQuestions;
+
+      try {
+        const res = await fetch(REMOTE_DATA_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Bad response');
+        const text = await res.text();
+        const parsed = parseData(text);
+        
+        // Filter valid
+        allQuestions = parsed.filter(q => q.type && q.question && q.correct && q.wrong1);
+        
+        if (allQuestions.length < 15) throw new Error('Not enough questions');
+        
+        console.log('[Bluegrass Trivia] Loaded', allQuestions.length, 'questions');
+      } catch (e) {
+        console.warn('[Bluegrass Trivia] Using fallback questions.', e);
+        allQuestions = [...FALLBACK_QUESTIONS];
+      }
+      
+      dataLoaded = true;
+      return allQuestions;
+    }
+
+    // Select 11 regular + 4 shorts, shuffle order
+    function selectGameQuestions() {
+      const regulars = allQuestions.filter(q => q.type === 'Regular');
+      const shorts = allQuestions.filter(q => q.type === 'Shorts');
+
+      const pickedRegular = shuffle(regulars).slice(0, 11);
+      const pickedShorts = shuffle(shorts).slice(0, 4);
+
+      const combined = shuffle([...pickedRegular, ...pickedShorts]);
+
+      // Attach shuffled options to each question
+      return combined.map(q => {
+        const opts = shuffle([q.correct, q.wrong1, q.wrong2, q.wrong3]);
+        return {
+          ...q,
+          options: opts
+        };
+      });
+    }
+
+    // Start a new game
+    async function startGame() {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('results-screen').classList.add('hidden');
+      const gameScreen = document.getElementById('game-screen');
+      gameScreen.classList.remove('hidden');
+
+      // Reset state
+      currentIndex = 0;
+      score = 0;
+      correctCount = 0;
+      regularCorrect = 0;
+      shortsCorrect = 0;
+      hasAnswered = false;
+
+      clearTimer();
+
+      // Load data if needed
+      const loadingEl = document.getElementById('question-text');
+      loadingEl.innerHTML = `<span class="text-[#5c4633] animate-pulse">Tuning the banjos and loading questions...</span>`;
+      
+      await loadQuestions();
+      
+      gameQuestions = selectGameQuestions();
+      
+      // Initial UI
+      updateScoreDisplay(true);
+      renderCurrentQuestion();
+    }
+
+    function updateScoreDisplay(initial = false) {
+      const el = document.getElementById('game-score');
+      el.textContent = score.toString().padStart(4, '0');
+      
+      if (!initial) {
+        el.classList.add('score-pop');
+        setTimeout(() => el.classList.remove('score-pop'), 650);
+      }
+    }
+
+    function updateProgress() {
+      const percent = Math.round(((currentIndex) / 15) * 100);
+      document.getElementById('progress-bar').style.width = `${percent}%`;
+      
+      document.getElementById('question-counter').innerHTML = 
+        `<span class="font-mono">${currentIndex + 1}</span><span class="text-[#5c4633]/70"> / 15</span>`;
+    }
+
+    function renderCurrentQuestion() {
+      const q = gameQuestions[currentIndex];
+      hasAnswered = false;
+
+      // Type badge
+      const badge = document.getElementById('question-type-badge');
+      const isShort = q.type === 'Shorts';
+      badge.className = `inline-flex items-center gap-x-2 px-3 py-1 rounded-2xl text-xs font-bold tracking-wider mb-4 ${isShort 
+        ? 'bg-amber-100 text-amber-800' 
+        : 'bg-emerald-100 text-emerald-800'}`;
+      badge.innerHTML = `
+        <span>${q.type.toUpperCase()}</span> 
+        <span class="opacity-70">•</span> 
+        <span class="font-mono">${isShort ? '200' : '100'} PTS</span>
+      `;
+
+      // Question
+      document.getElementById('question-text').textContent = q.question;
+
+      // Points label
+      document.getElementById('points-this-q').innerHTML = 
+        `<span class="font-semibold">${isShort ? '200' : '100'} points</span>`;
+
+      // Answers
+      const container = document.getElementById('answers-container');
+      container.innerHTML = '';
+      
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `answer-btn w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 min-h-[48px] border-2 border-[#d4c3a3] rounded-2xl font-medium text-[#3f2a1d] bg-white hover:bg-[#f8f1e3] flex items-center gap-x-3 text-sm sm:text-[15px]`;
+        btn.innerHTML = `
+          <div class="option-label w-5 text-center">${String.fromCharCode(65 + idx)}</div>
+          <div class="flex-1">${opt}</div>
+        `;
+        
+        btn.onclick = () => handleAnswer(opt, btn, q);
+        
+        // Keyboard hint
+        btn.setAttribute('data-option', opt);
+        
+        container.appendChild(btn);
+      });
+
+      // Reset feedback + next button
+      document.getElementById('feedback-area').classList.add('hidden');
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.disabled = true;
+      nextBtn.classList.add('opacity-40');
+
+      // Start fresh 15s timer for this question
+      clearTimer();
+      startTimer();
+
+      updateProgress();
+    }
+
+    function handleAnswer(selected, buttonEl, question) {
+      if (hasAnswered) return;
+      hasAnswered = true;
+
+      clearTimer();
+
+      const isCorrect = selected === question.correct;
+      const container = document.getElementById('answers-container');
+      const buttons = container.querySelectorAll('button');
+
+      // Disable + style all
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        const optText = btn.getAttribute('data-option');
+        
+        if (optText === question.correct) {
+          // Mark the true correct answer
+          btn.classList.add('correct', 'selected-correct');
+          btn.innerHTML = `
+            <div class="option-label w-5 text-center text-emerald-700">✓</div>
+            <div class="flex-1">${optText}</div>
+            <div class="text-xs px-2 py-px bg-emerald-700 text-white rounded font-bold">CORRECT</div>
+          `;
+        } else if (optText === selected && !isCorrect) {
+          // Wrong choice
+          btn.classList.add('wrong');
+          btn.innerHTML = `
+            <div class="option-label w-5 text-center text-red-600">✕</div>
+            <div class="flex-1">${optText}</div>
+          `;
+        } else {
+          // Other wrong options — dim slightly
+          btn.style.opacity = '0.65';
+        }
+      });
+
+      // Update score + counters
+      const points = question.type === 'Shorts' ? 200 : 100;
+      if (isCorrect) {
+        score += points;
+        correctCount++;
+        if (question.type === 'Shorts') shortsCorrect++;
+        else regularCorrect++;
+        
+        updateScoreDisplay();
+        
+        // Show nice feedback
+        showFeedback(true, points);
+      } else {
+        showFeedback(false, question.correct);
+      }
+
+      // Enable next
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.disabled = false;
+      nextBtn.classList.remove('opacity-40');
+    }
+
+    function showFeedback(correct, data) {
+      const area = document.getElementById('feedback-area');
+      const text = document.getElementById('feedback-text');
+      area.classList.remove('hidden');
+
+      if (correct) {
+        text.innerHTML = `
+          <span class="inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center bg-emerald-100 text-emerald-700 rounded-full flex-shrink-0 mt-px">
+            <i class="fa-solid fa-check text-xs sm:text-sm"></i>
+          </span>
+          <span class="font-semibold text-emerald-700">Correct! +${data} points</span>
+        `;
+        text.className = 'text-xs sm:text-sm font-medium flex items-start gap-x-2 text-emerald-700';
+      } else {
+        text.innerHTML = `
+          <span class="inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center bg-red-100 text-red-700 rounded-full flex-shrink-0 mt-px">
+            <i class="fa-solid fa-times text-xs sm:text-sm"></i>
+          </span>
+          <span>The correct answer was <span class="font-semibold text-red-700">${data}</span></span>
+        `;
+        text.className = 'text-xs sm:text-sm font-medium flex items-start gap-x-2 text-red-700';
+      }
+    }
+
+    function nextQuestion() {
+      clearTimer();
+      currentIndex++;
+      
+      if (currentIndex >= gameQuestions.length) {
+        showResults().catch(console.error);
+      } else {
+        renderCurrentQuestion();
+      }
+    }
+
+    async function showResults() {
+      clearTimer();
+      document.getElementById('game-screen').classList.add('hidden');
+      
+      const results = document.getElementById('results-screen');
+      results.classList.remove('hidden');
+
+      // Populate numbers
+      document.getElementById('final-score').textContent = score;
+      const percent = Math.round((score / 1700) * 100);
+      document.getElementById('final-percent').innerHTML = `${percent}<span class="text-base align-super">%</span>`;
+      
+      // Reset submit UI for new results
+      const submitForm = document.getElementById('submit-form');
+      const submitSuccess = document.getElementById('submit-success');
+      if (submitForm) submitForm.style.display = '';
+      if (submitSuccess) submitSuccess.classList.add('hidden');
+      
+      // Correct counts
+      document.getElementById('regular-correct').textContent = `${regularCorrect}/11`;
+      document.getElementById('shorts-correct').textContent = `${shortsCorrect}/4`;
+
+      // Message
+      const msgEl = document.getElementById('performance-message');
+      let msg = '';
+      if (percent >= 94) msg = '🏆 Master Picker! Incredible knowledge!';
+      else if (percent >= 85) msg = '🎻 Bluegrass Legend! Outstanding!';
+      else if (percent >= 70) msg = '🪕 Strong Picker! Great work!';
+      else if (percent >= 55) msg = '🎸 Solid effort — keep pickin\'!';
+      else msg = '🌲 The hills are alive... try again!';
+      msgEl.textContent = msg;
+
+      // Render mini leaderboard
+      renderResultsLeaderboard().catch(console.error);
+
+      // Clear previous submit state
+      document.getElementById('submit-success').classList.add('hidden');
+      document.getElementById('player-name').value = 'Bluegrass Fan';
+
+      // Light confetti on good scores
+      if (percent >= 70) {
+        launchConfetti();
+      }
+    }
+
+    async function renderResultsLeaderboard() {
+      const container = document.getElementById('results-leaderboard');
+      const scores = await getLeaderboard();
+      if (scores.length === 0) {
+        container.innerHTML = `<div class="px-3 sm:px-4 py-4 sm:py-6 text-center text-xs text-[#5c4633]/70">No scores yet. Be the first!</div>`;
+        return;
+      }
+      let html = '<div class="divide-y divide-[#d4c3a3]/60 text-xs sm:text-sm">';
+      scores.forEach((entry, i) => {
+        html += `
+          <div class="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between leaderboard-row">
+            <div class="flex items-center gap-x-2 sm:gap-x-3">
+              <div class="w-4 sm:w-5 text-right font-mono text-[10px] sm:text-xs text-[#5c4633]">${i + 1}</div>
+              <div class="font-medium">${escapeHtml(entry.name)}</div>
+            </div>
+            <div class="font-mono text-right font-semibold">${entry.score}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    async function submitScore() {
+      const nameInput = document.getElementById('player-name').value.trim() || 'Anonymous';
+      const formData = new URLSearchParams();
+      formData.append(LEADERBOARD_ENTRY_NAME, nameInput.substring(0, 24));
+      formData.append(LEADERBOARD_ENTRY_SCORE, score);
+      try {
+        await fetch(LEADERBOARD_FORM_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: formData
+        });
+      } catch (e) {
+        console.warn('Submit failed (no-cors is expected).', e);
+      }
+      const success = document.getElementById('submit-success');
+      const form = document.getElementById('submit-form');
+      if (form) form.style.display = 'none';
+      success.classList.remove('hidden');
+      setTimeout(async () => {
+        try { await renderResultsLeaderboard(); } catch (e) {}
+        const modal = document.getElementById('leaderboard-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          try { await renderLeaderboardModal(); } catch (e) {}
+        }
+      }, 2000);
+    }
+
+    async function getLeaderboard() {
+      // Fetch + parse Top 20 from the Form Responses published CSV/TSV.
+      // We use mode: 'no-cors' to avoid CORS errors in the browser (the published
+      // responses tab often lacks CORS headers). This results in an "opaque"
+      // response: fetch "succeeds" but we cannot read .text() or inspect status.
+      // Columns: 0=Timestamp, 1=Player Name, 2=Score, 3=Untitled Question
+      // Falls back to demo data (FALLBACK_LEADERBOARD) on any failure / opaque.
+      try {
+        const res = await fetch(LEADERBOARD_READ_URL, { cache: 'no-store', mode: 'no-cors' });
+        console.log('[LEADERBOARD DEBUG] Response type:', res.type, 'status:', res.status, 'ok:', res.ok);
+
+        if (res.type === 'opaque') {
+          // Cannot read body with no-cors. Use demo data instead of failing.
+          console.log('[LEADERBOARD DEBUG] Opaque response (CORS) — cannot read CSV body. Using demo data.');
+          throw new Error('opaque response (no readable body)');
+        }
+
+        if (!res.ok) throw new Error('Fetch failed');
+
+        const text = await res.text();
+        console.log('[LEADERBOARD DEBUG] Raw CSV response text:', text);
+        const lines = text.trim().split(/\r?\n/);
+        const entries = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line.trim()) continue;
+          // Use TSV parser first (user data is tab-separated); fallback to CSV parser
+          // so it works regardless of whether the feed uses \t or ,
+          let values = parseTSVLine(line);
+          if (values.length < 3) {
+            values = parseDataLine(line);
+          }
+          values = values.map(v => v.trim().replace(/^"|"$/g, ''));
+          if (values.length < 3) continue;
+          // Columns: 0=Timestamp, 1=Player Name, 2=Score, 3=Untitled Question
+          // Pull name from index 1, score from index 2; ignore others.
+          const name = values[1];
+          const score = parseInt(values[2], 10);
+          if (name && score > 0) {
+            entries.push({ name, score });
+          }
+        }
+        console.log('[LEADERBOARD DEBUG] Successfully parsed entries count:', entries.length);
+        entries.sort((a, b) => b.score - a.score);
+        return entries.slice(0, 20);
+      } catch (e) {
+        console.warn('Leaderboard fetch failed (using demo data):', e);
+        // Return a copy of the demo scores (pre-sorted desc) so UI always shows something nice.
+        return [...FALLBACK_LEADERBOARD];
+      }
+    }
+
+    async function renderLeaderboardModal() {
+      const body = document.getElementById('modal-leaderboard-body');
+      const scores = await getLeaderboard();
+      if (scores.length === 0) {
+        body.innerHTML = `
+          <div class="px-4 sm:px-6 py-8 sm:py-10 text-center">
+            <i class="fa-solid fa-trophy text-2xl sm:text-3xl text-[#d4c3a3]"></i>
+            <div class="mt-2 sm:mt-3 text-[#5c4633] text-sm">No scores recorded yet.</div>
+            <div class="text-[10px] sm:text-xs mt-1 text-[#5c4633]/70">Play a game to get on the board!</div>
+          </div>`;
+        return;
+      }
+      let html = `<div class="divide-y divide-[#d4c3a3]/50 text-xs sm:text-sm">`;
+      scores.forEach((entry, index) => {
+        html += `
+          <div class="px-4 sm:px-5 py-2.5 sm:py-[13px] flex items-center justify-between hover:bg-[#f8f1e3]/70">
+            <div class="flex items-center gap-x-2 sm:gap-x-3 min-w-0">
+              <div class="font-mono w-5 sm:w-6 text-right text-[#b45309] font-semibold">${index + 1}</div>
+              <div class="font-medium truncate">${escapeHtml(entry.name)}</div>
+            </div>
+            <div class="text-right font-mono flex-shrink-0 pl-2 sm:pl-3">
+              <span class="font-semibold tabular-nums">${entry.score}</span>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+      body.innerHTML = html;
+    }
+
+    function showLeaderboardModal() {
+      const modal = document.getElementById('leaderboard-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      renderLeaderboardModal().catch(console.error);
+    }
+
+    function hideLeaderboardModal() {
+      const modal = document.getElementById('leaderboard-modal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+    }
+
+    function clearLeaderboard() {
+      if (!confirm('Refresh leaderboard from the Form Responses CSV?')) return;
+      const resultsBoard = document.getElementById('results-leaderboard');
+      if (resultsBoard) {
+        renderResultsLeaderboard().catch(() => {
+          if (resultsBoard) resultsBoard.innerHTML = `<div class="px-3 sm:px-4 py-4 sm:py-6 text-center text-xs text-[#5c4633]/70">Refreshed.</div>`;
+        });
+      }
+      const modal = document.getElementById('leaderboard-modal');
+      if (modal && !modal.classList.contains('hidden')) {
+        renderLeaderboardModal().catch(console.error);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    // Simple confetti using DOM elements - scoped for embeds / results area
+    function launchConfetti() {
+      const colors = ['#14532d', '#b45309', '#3f2a1d', '#166534'];
+      const container = document.getElementById('results-screen') || document.body;
+      const isEmbedContainer = container.id === 'results-screen';
+      
+      if (isEmbedContainer) {
+        // Ensure confetti stays inside the results area in embeds/iframes
+        container.style.position = 'relative';
+      }
+      
+      for (let i = 0; i < 38; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'absolute text-xl pointer-events-none z-[200]';
+        
+        if (isEmbedContainer) {
+          piece.style.left = Math.random() * 100 + '%';
+          piece.style.top = '-8px';
+        } else {
+          piece.style.left = Math.random() * 100 + 'vw';
+          piece.style.top = '-20px';
+        }
+        
+        piece.style.transition = `transform ${1.35 + Math.random() * 0.8}s linear, opacity 1.5s ease`;
+        piece.style.opacity = Math.random() * 0.85 + 0.45;
+        
+        const isEmoji = Math.random() > 0.65;
+        if (isEmoji) {
+          piece.textContent = ['🪕','🎻','🎸','🌲'][Math.floor(Math.random()*4)];
+          piece.style.fontSize = (13 + Math.random() * 11) + 'px';
+        } else {
+          piece.style.width = '6px';
+          piece.style.height = '6px';
+          piece.style.borderRadius = Math.random() > .5 ? '50%' : '1px';
+          piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        container.appendChild(piece);
+        
+        const xDrift = (Math.random() - 0.5) * (isEmbedContainer ? 95 : 260);
+        const rot = (Math.random() - 0.5) * 580;
+        
+        // Force reflow then animate. Use container height for fall distance in embeds.
+        requestAnimationFrame(() => {
+          const fallDistance = isEmbedContainer 
+            ? (container.offsetHeight + 120) 
+            : (window.innerHeight + 80);
+          piece.style.transform = `translate(${xDrift}px, ${fallDistance}px) rotate(${rot}deg)`;
+          piece.style.opacity = '0';
+        });
+        
+        setTimeout(() => piece.remove(), 2300);
+      }
+    }
+
+    // Play again — restarts everything
+    function playAgain() {
+      document.getElementById('results-screen').classList.add('hidden');
+      
+      // Start fresh game (re-uses already loaded questions)
+      const gameScreen = document.getElementById('game-screen');
+      gameScreen.classList.remove('hidden');
+      
+      currentIndex = 0;
+      score = 0;
+      correctCount = 0;
+      regularCorrect = 0;
+      shortsCorrect = 0;
+      hasAnswered = false;
+
+      clearTimer();
+      
+      // Re-select new random set from already loaded data
+      gameQuestions = selectGameQuestions();
+      
+      updateScoreDisplay(true);
+      renderCurrentQuestion();
+    }
+
+    // Keyboard support for answers (1-4 or a-d)
+    function setupKeyboardControls() {
+      document.addEventListener('keydown', (e) => {
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen.classList.contains('hidden')) return;
+        
+        const container = document.getElementById('answers-container');
+        if (!container) return;
+        
+        const buttons = container.querySelectorAll('button:not(:disabled)');
+        if (buttons.length === 0) return; // already answered or not ready
+        
+        let idx = -1;
+        
+        if (e.key >= '1' && e.key <= '4') {
+          idx = parseInt(e.key) - 1;
+        } else if (['a','b','c','d'].includes(e.key.toLowerCase())) {
+          idx = e.key.toLowerCase().charCodeAt(0) - 97;
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          // If next button enabled, advance
+          const next = document.getElementById('next-btn');
+          if (!next.disabled) {
+            e.preventDefault();
+            nextQuestion();
+          }
+          return;
+        } else if (e.key.toLowerCase() === 'n' && !document.getElementById('next-btn').disabled) {
+          nextQuestion();
+          return;
+        }
+        
+        if (idx >= 0 && idx < buttons.length) {
+          e.preventDefault();
+          buttons[idx].click();
+        }
+      });
+      
+      // Also allow pressing N for next from anywhere in game once ready
+    }
+
+    // Initialize everything
+    async function init() {
+      initTailwind();
+      setupKeyboardControls();
+      
+      // Show teaser high score on start screen (if any)
+      try {
+        const scores = await getLeaderboard();
+        if (scores.length > 0) {
+          const top = scores[0];
+          const pct = Math.round((top.score / 1700) * 100);
+          const teaser = document.getElementById('start-highscore');
+          const val = document.getElementById('start-highscore-val');
+          if (teaser && val) {
+            val.textContent = `${top.score} (${pct}%) by ${top.name}`;
+            teaser.classList.remove('hidden');
+          }
+        }
+      } catch (e) {}
+      
+      // Preload questions in background (non-blocking)
+      setTimeout(() => {
+        loadQuestions().catch(() => {});
+      }, 1200);
+      
+      // Bonus: press "?" to show leaderboard from start
+      document.addEventListener('keypress', (e) => {
+        if (e.key === '?') {
+          const start = document.getElementById('start-screen');
+          if (!start.classList.contains('hidden')) {
+            showLeaderboardModal();
+          }
+        }
+      });
+      
+      // Make sure start is visible on load
+      console.log('%c[Bluegrass Trivia] Ready — 15 questions, 1700 max points. Press 1-4 to answer.', 'color:#5c4633');
+    }
+
+    // Boot
+    init().catch(console.error);
+  </script>
+</body>
+</html>

@@ -465,7 +465,7 @@
   </footer>
 
   <!-- 
-  LEADERBOARD: reads Top 20 from CSV, submits name+score via form. Simple & reliable.
+  LEADERBOARD: reads Top 20 from Apps Script backend (JSON), submits via Google Form. 
   -->
 
   <script>
@@ -521,14 +521,6 @@
       }
       result.push(current);
       return result;
-    }
-
-    // Parser for tab-separated values (TSV) from the leaderboard Form Responses tab.
-    // Uses simple tab split (TSV from Google publish can vary by locale; see getLeaderboard for comma fallback).
-    function parseTSVLine(line) {
-      // Split on tabs for TSV (tab-separated) leaderboard data.
-      // Outer quotes (if present) are stripped by the caller.
-      return line.split('\t');
     }
 
     // Fisher-Yates shuffle
@@ -680,13 +672,12 @@
     let autoNextTimeout = null;
 
     // === LEADERBOARD ===
-    const LEADERBOARD_READ_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRqnKPgc34Ylhj2p4Ykii_p286374l7IrVPg4AWB_2hNUavHTVUN7acWziUKkK2uHtJZyRkcoL5crCH/pub?gid=477188129&single=true&output=csv";
+    const LEADERBOARD_READ_URL = "https://script.google.com/macros/s/AKfycbxlmITCVFW98RScZx4vdW3jc4WaohRitswh_HRVXIBBkn6PpMJvo7EAza8sYrlCMTcK/exec";
     const LEADERBOARD_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfZu5YMD8qN9DLCs8p0SJ7z8OvoB1o_qPOI2WWVwo9tP-iAYQ/formResponse";
     const LEADERBOARD_ENTRY_NAME = "entry.296522530";
     const LEADERBOARD_ENTRY_SCORE = "entry.1714805248";
 
-    // Demo leaderboard data used when live CSV fetch fails (e.g. due to CORS on the published responses tab).
-    // With no-cors mode we get an opaque response and cannot read the body.
+    // Demo/fallback leaderboard (used if the Apps Script read fails for any reason).
     const FALLBACK_LEADERBOARD = [
       { name: "Sammy P", score: 1700 },
       { name: "Pickin' Pro", score: 1650 },
@@ -1037,53 +1028,34 @@
     }
 
     async function getLeaderboard() {
-      // Fetch + parse Top 20 from the Form Responses published CSV/TSV.
-      // We use mode: 'no-cors' to avoid CORS errors in the browser (the published
-      // responses tab often lacks CORS headers). This results in an "opaque"
-      // response: fetch "succeeds" but we cannot read .text() or inspect status.
-      // Columns: 0=Timestamp, 1=Player Name, 2=Score, 3=Untitled Question
-      // Falls back to demo data (FALLBACK_LEADERBOARD) on any failure / opaque.
+      // Fetch Top 20 from the Apps Script backend.
+      // Expected response: { success: true, data: [ {name, score}, ... ] }
+      // Falls back to demo data on error so the UI is never empty.
       try {
-        const res = await fetch(LEADERBOARD_READ_URL, { cache: 'no-store', mode: 'no-cors' });
-        console.log('[LEADERBOARD DEBUG] Response type:', res.type, 'status:', res.status, 'ok:', res.ok);
+        const res = await fetch(LEADERBOARD_READ_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
 
-        if (res.type === 'opaque') {
-          // Cannot read body with no-cors. Use demo data instead of failing.
-          console.log('[LEADERBOARD DEBUG] Opaque response (CORS) — cannot read CSV body. Using demo data.');
-          throw new Error('opaque response (no readable body)');
+        const json = await res.json();
+
+        if (!json || json.success !== true || !Array.isArray(json.data)) {
+          throw new Error('Invalid response from leaderboard backend');
         }
 
-        if (!res.ok) throw new Error('Fetch failed');
+        let entries = json.data;
 
-        const text = await res.text();
-        console.log('[LEADERBOARD DEBUG] Raw CSV response text:', text);
-        const lines = text.trim().split(/\r?\n/);
-        const entries = [];
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (!line.trim()) continue;
-          // Use TSV parser first (user data is tab-separated); fallback to CSV parser
-          // so it works regardless of whether the feed uses \t or ,
-          let values = parseTSVLine(line);
-          if (values.length < 3) {
-            values = parseDataLine(line);
-          }
-          values = values.map(v => v.trim().replace(/^"|"$/g, ''));
-          if (values.length < 3) continue;
-          // Columns: 0=Timestamp, 1=Player Name, 2=Score, 3=Untitled Question
-          // Pull name from index 1, score from index 2; ignore others.
-          const name = values[1];
-          const score = parseInt(values[2], 10);
-          if (name && score > 0) {
-            entries.push({ name, score });
-          }
-        }
-        console.log('[LEADERBOARD DEBUG] Successfully parsed entries count:', entries.length);
+        // Normalize to {name, score}, filter valid, sort desc, take top 20
+        entries = entries
+          .map(item => {
+            const name = String(item.name || item.player || item.Player || '').trim();
+            const score = parseInt(item.score || item.Score || item.points || 0, 10);
+            return { name, score };
+          })
+          .filter(e => e.name && e.score > 0);
+
         entries.sort((a, b) => b.score - a.score);
         return entries.slice(0, 20);
       } catch (e) {
-        console.warn('Leaderboard fetch failed (using demo data):', e);
-        // Return a copy of the demo scores (pre-sorted desc) so UI always shows something nice.
+        console.warn('Leaderboard fetch from Apps Script failed (using demo data):', e);
         return [...FALLBACK_LEADERBOARD];
       }
     }
@@ -1131,7 +1103,7 @@
     }
 
     function clearLeaderboard() {
-      if (!confirm('Refresh leaderboard from the Form Responses CSV?')) return;
+      if (!confirm('Refresh leaderboard?')) return;
       const resultsBoard = document.getElementById('results-leaderboard');
       if (resultsBoard) {
         renderResultsLeaderboard().catch(() => {
